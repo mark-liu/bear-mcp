@@ -1,0 +1,18 @@
+[project]
+name = "bear-mcp"
+version = "0.2.0"
+description = "MCP server for Bear App — fast read-only access via direct SQLite"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Mark Liu" }]
+dependencies = [
+    "fastmcp>=2.0.0",
+]
+
+[project.scripts]
+bear-mcp = "bear_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
