@@ -13,5 +13,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]" 2>/dev/null || pip install -e .
-      - run: python -c "from bear_mcp.server import mcp; print(f'Tools: {len(mcp._tool_manager._tools)}')"
+      - run: pip install -e .
+      - run: python -m py_compile bear_mcp/server.py
+      - run: python -c "import bear_mcp.server; print('import OK')"
