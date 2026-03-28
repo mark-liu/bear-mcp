@@ -18,19 +18,21 @@ Limitations:
 ## Install
 
 ```bash
-pip install bear-mcp
+pip install git+https://github.com/mark-liu/bear-mcp.git
 ```
 
 Or run without installing:
 
 ```bash
-uvx bear-mcp
+uvx --from git+https://github.com/mark-liu/bear-mcp.git bear-mcp
 ```
+
+PyPI coming soon — `pip install bear-mcp` once published.
 
 ## Configure in Claude Code
 
 ```bash
-claude mcp add bear -- uvx bear-mcp
+claude mcp add bear -s user -- uvx --from git+https://github.com/mark-liu/bear-mcp.git bear-mcp
 ```
 
 ## Tools
