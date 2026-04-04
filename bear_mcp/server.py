@@ -22,7 +22,7 @@ BEAR_DB_PATH = os.path.expanduser(
     "/Application Data/database.sqlite"
 )
 
-_CORE_DATA_EPOCH = datetime.datetime(2001, 1, 1)
+_CORE_DATA_EPOCH = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
 
 mcp = FastMCP("Bear Notes")
 
@@ -204,7 +204,7 @@ def get_recent_notes(days: int = 7, limit: int = 20) -> list[dict[str, Any]]:
     conn = _connect()
     try:
         cutoff = (
-            datetime.datetime.now() - datetime.timedelta(days=days) - _CORE_DATA_EPOCH
+            datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days) - _CORE_DATA_EPOCH
         ).total_seconds()
 
         rows = conn.execute(
