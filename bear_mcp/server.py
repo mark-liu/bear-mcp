@@ -26,14 +26,25 @@ _CORE_DATA_EPOCH = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
 
 mcp = FastMCP("Bear Notes")
 
+# Shared connection — opened lazily on first call, reused thereafter.
+# check_same_thread=False because MCP may dispatch tool calls from
+# different threads.
+_shared_conn: sqlite3.Connection | None = None
 
-def _connect() -> sqlite3.Connection:
-    """Open a read-only connection to the Bear database."""
-    if not os.path.exists(BEAR_DB_PATH):
-        raise FileNotFoundError(f"Bear database not found: {BEAR_DB_PATH}")
-    conn = sqlite3.connect(f"file:{BEAR_DB_PATH}?mode=ro", uri=True)
-    conn.row_factory = sqlite3.Row
-    return conn
+
+def _get_connection() -> sqlite3.Connection:
+    """Return the shared read-only connection, creating it on first call."""
+    global _shared_conn
+    if _shared_conn is None:
+        if not os.path.exists(BEAR_DB_PATH):
+            raise FileNotFoundError(f"Bear database not found: {BEAR_DB_PATH}")
+        _shared_conn = sqlite3.connect(
+            f"file:{BEAR_DB_PATH}?mode=ro",
+            uri=True,
+            check_same_thread=False,
+        )
+        _shared_conn.row_factory = sqlite3.Row
+    return _shared_conn
 
 
 def _note_row_to_dict(row: sqlite3.Row, *, include_content: bool = True) -> dict[str, Any]:
@@ -80,7 +91,7 @@ def search_bear_notes(
         tag: Tag to filter by (without the # prefix). Uses the tag index, not text search.
         limit: Maximum results to return.
     """
-    conn = _connect()
+    conn = _get_connection()
     try:
         params: list[Any] = []
 
@@ -113,8 +124,6 @@ def search_bear_notes(
         return [_note_row_to_dict(row) for row in conn.execute(sql, params).fetchall()]
     except Exception as e:
         return [{"error": f"Search error: {e}"}]
-    finally:
-        conn.close()
 
 
 @mcp.tool()
@@ -124,7 +133,7 @@ def get_bear_note(note_id: str) -> dict[str, Any]:
     Args:
         note_id: The note's unique identifier (UUID).
     """
-    conn = _connect()
+    conn = _get_connection()
     try:
         row = conn.execute(
             f"SELECT {_NOTE_COLUMNS} FROM ZSFNOTE WHERE ZUNIQUEIDENTIFIER = ? AND {_NOT_TRASHED}",
@@ -133,8 +142,6 @@ def get_bear_note(note_id: str) -> dict[str, Any]:
         return _note_row_to_dict(row) if row else {"error": "Note not found"}
     except Exception as e:
         return {"error": f"Error retrieving note: {e}"}
-    finally:
-        conn.close()
 
 
 @mcp.tool()
@@ -143,7 +150,7 @@ def list_bear_tags() -> list[str]:
 
     Reads from the ZSFNOTETAG table directly — no full-text scan.
     """
-    conn = _connect()
+    conn = _get_connection()
     try:
         rows = conn.execute(
             """
@@ -158,8 +165,6 @@ def list_bear_tags() -> list[str]:
         return [row[0] for row in rows if row[0]]
     except Exception as e:
         return [f"Error listing tags: {e}"]
-    finally:
-        conn.close()
 
 
 @mcp.tool()
@@ -173,7 +178,7 @@ def find_notes_by_title(
         title_query: Title text to search for.
         exact_match: If true, match the title exactly; otherwise partial match.
     """
-    conn = _connect()
+    conn = _get_connection()
     try:
         if exact_match:
             where = f"{_NOT_TRASHED} AND ZTITLE = ?"
@@ -189,8 +194,6 @@ def find_notes_by_title(
         return [_note_row_to_dict(row) for row in rows]
     except Exception as e:
         return [{"error": f"Error searching by title: {e}"}]
-    finally:
-        conn.close()
 
 
 @mcp.tool()
@@ -201,7 +204,7 @@ def get_recent_notes(days: int = 7, limit: int = 20) -> list[dict[str, Any]]:
         days: Number of days to look back.
         limit: Maximum results to return.
     """
-    conn = _connect()
+    conn = _get_connection()
     try:
         cutoff = (
             datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days) - _CORE_DATA_EPOCH
@@ -220,8 +223,6 @@ def get_recent_notes(days: int = 7, limit: int = 20) -> list[dict[str, Any]]:
         return [_note_row_to_dict(row) for row in rows]
     except Exception as e:
         return [{"error": f"Error getting recent notes: {e}"}]
-    finally:
-        conn.close()
 
 
 def main() -> None:

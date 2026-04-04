@@ -15,7 +15,7 @@ class TestCoreDataTimestamp:
         )
         assert server._CORE_DATA_EPOCH.tzinfo == datetime.timezone.utc
 
-    @patch("bear_mcp.server._connect")
+    @patch("bear_mcp.server._get_connection")
     def test_cutoff_timestamp_is_correct(self, mock_connect):
         """get_recent_notes must compute a UTC-based Core Data timestamp."""
         mock_conn = MagicMock()
