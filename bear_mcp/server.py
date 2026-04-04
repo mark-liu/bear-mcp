@@ -89,8 +89,9 @@ def search_bear_notes(
     Args:
         query: Text to search for in title and content.
         tag: Tag to filter by (without the # prefix). Uses the tag index, not text search.
-        limit: Maximum results to return.
+        limit: Maximum results to return (clamped to 1-500).
     """
+    limit = max(1, min(limit, 500))
     conn = _get_connection()
     try:
         params: list[Any] = []
@@ -201,9 +202,11 @@ def get_recent_notes(days: int = 7, limit: int = 20) -> list[dict[str, Any]]:
     """Get recently modified notes.
 
     Args:
-        days: Number of days to look back.
-        limit: Maximum results to return.
+        days: Number of days to look back (clamped to 1-365).
+        limit: Maximum results to return (clamped to 1-500).
     """
+    days = max(1, min(days, 365))
+    limit = max(1, min(limit, 500))
     conn = _get_connection()
     try:
         cutoff = (
